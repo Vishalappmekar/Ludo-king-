@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ludo Earning Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f9f9f9; }
+        h1 { text-align: center; }
+        .wallet, .controls { margin: 20px auto; max-width: 300px; padding: 10px; background: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        button { margin: 10px 0; padding: 10px; width: 100%; background: #28a745; color: #fff; border: none; border-radius: 5px; font-size: 16px; }
+        button:hover { background: #218838; }
+        #walletBalance, #withdrawStatus { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Ludo Earning Game</h1>
+    <div class="wallet">
+        Wallet Balance: ₹<span id="walletBalance">0</span>
+    </div>
+    <div class="controls">
+        <button onclick="joinTournament()">Join Tournament (₹10)</button>
+        <button onclick="withdrawEarnings()">Withdraw (₹100 min)</button>
+        <p>Status: <span id="withdrawStatus"></span></p>
+    </div>
+
+    <script>
+        let userId = null;
+
+        async function registerUser() {
+            const res = await fetch('http://localhost:5000/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: "Player 1" })
+            });
+            const data = await res.json();
+            userId = data.uid;
+            updateWalletUI();
+        }
+
+        async function updateWalletUI() {
+            const res = await fetch(`http://localhost:5000/api/wallet/${userId}`);
+            const data = await res.json();
+            document.getElementById("walletBalance").textContent = data.wallet;
+        }
+
+        async function joinTournament() {
+            const res = await fetch('http://localhost:5000/api/tournament/join', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: userId })
+            });
+            const result = await res.json();
+            if (result.status === 'joined') {
+                alert("✅ Joined! Prize will be added soon.");
+                setTimeout(winTournament, 3000);
+            } else {
+                alert("❌ Not enough balance!");
+            }
+        }
+
+        async function winTournament() {
+            await fetch('http://localhost:5000/api/tournament/win', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: userId, prize: 40 })
+            });
+            updateWalletUI();
+        }
+
+        async function withdrawEarnings() {
+            const res = await fetch('http://localhost:5000/api/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: userId })
+            });
+            const result = await res.json();
+            document.getElementById("withdrawStatus").textContent = result.status;
+            updateWalletUI();
+        }
+
+        document.addEventListener("DOMContentLoaded", registerUser);
+    </script>
+</body>
+</html>
